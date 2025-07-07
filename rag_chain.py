@@ -5,13 +5,32 @@ from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 
-# ✅ Set the OpenAI key securely from Streamlit Secrets
+from langchain_community.document_loaders import TextLoader
+from langchain.text_splitter import CharacterTextSplitter
+
+# ✅ Set API Key from secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 def load_vectorstore():
-    """Load the FAISS index with OpenAI embeddings."""
+    """Load or build FAISS vectorstore with OpenAI embeddings."""
     embeddings = OpenAIEmbeddings()
-    return FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+
+    # If index exists, load it
+    if os.path.exists("faiss_index/index.faiss"):
+        return FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+    
+    # If not, create one from a sample file (data.txt)
+    if not os.path.exists("data.txt"):
+        raise FileNotFoundError("❌ 'data.txt' not found. Please include it in the repo.")
+
+    loader = TextLoader("data.txt", encoding="utf-8")
+    docs = loader.load()
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    texts = text_splitter.split_documents(docs)
+
+    vectorstore = FAISS.from_documents(texts, embeddings)
+    vectorstore.save_local("faiss_index")
+    return vectorstore
 
 def get_qa_chain(k=5, temperature=0.3):
     """Return a RetrievalQA chain with tuned retriever and LLM."""

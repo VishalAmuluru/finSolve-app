@@ -1,0 +1,21 @@
+SBI Bank offers home loans starting from 8.40% interest rate with flexible EMI options.
+
+The EMI for a ₹10 lakh home loan over 20 years at 8.5% interest rate is approximately ₹8678 per month.
+
+HDFC Bank provides a top-up loan facility along with home loans.
+
+For education loans, interest rates start from 9.2% per annum. EMI depends on loan tenure and moratorium period.
+
+Personal loans from ICICI Bank can go up to ₹25 lakhs with a 12% to 18% interest rate.
+
+A car loan of ₹6 lakhs at 9% interest for 5 years will result in a monthly EMI of around ₹12,455.
+
+The formula to calculate EMI is: EMI = [P × R × (1+R)^N] / [(1+R)^N – 1], where P = principal, R = monthly interest rate, N = number of installments.
+
+You can close a loan early through part-prepayment or full prepayment. Some banks charge penalties.
+
+A CIBIL score of 750+ is considered good for loan approval.
+
+SBI Xpress Credit personal loan is available for salaried employees at competitive interest rates.
+
+For business loans, documents required include income proof, business registration, and bank statements.
