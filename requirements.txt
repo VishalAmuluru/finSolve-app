@@ -1,0 +1,8 @@
+streamlit
+pandas
+langchain
+openai
+faiss-cpu
+tiktoken
+plotly
+scikit-learn
