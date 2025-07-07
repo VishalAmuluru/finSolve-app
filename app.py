@@ -10,7 +10,6 @@ st.set_page_config(
 # --- Elegant Dark Theme CSS ---
 st.markdown("""
 <style>
-    /* Base Background */
     body, .main, .block-container {
         background-color: #1e272e;
         font-family: 'Segoe UI', sans-serif;
@@ -92,19 +91,22 @@ st.markdown("<div class='tagline'>Hyderabad’s Premium Loan & EMI Advisor</div>
 # --- Text Input ---
 query = st.text_input("💬 Ask your loan/EMI question", placeholder="E.g. Best EMI for 10 lakh in SBI bank?")
 
-# --- Load Chain
+# Alternative with chat style (optional):
+# query = st.chat_input("Ask your loan/EMI question")
+
+# --- Load Chain ---
 @st.cache_resource(show_spinner=False)
 def load_chain():
     return get_qa_chain()
 
 qa_chain = load_chain()
 
-# --- Button and Response
+# --- Button and Response ---
 if st.button("🔍 Get Answer"):
     if query.strip() == "":
         st.warning("⚠️ Please enter a question.")
     else:
-        with st.spinner("Searching premium answers..."):
+        with st.spinner("🧠 Thinking like a financial expert..."):
             try:
                 result = qa_chain.invoke({"query": query})
                 answer = result.get("result", "❌ Sorry, couldn’t find an answer.")
@@ -118,7 +120,8 @@ if st.button("🔍 Get Answer"):
 
             except Exception as e:
                 st.error("Something went wrong.")
-                st.exception(e)
+                with st.expander("🔧 Show error details"):
+                    st.exception(e)
 
-# --- Footer
+# --- Footer ---
 st.markdown("<div class='footer'>Made by Vishal | Powered by LangChain & OpenAI</div>", unsafe_allow_html=True)
