@@ -5,8 +5,9 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain.schema import Document  # Required to build docs manually
 
-# ✅ Set API Key from Streamlit Secrets
+# ✅ Set OpenAI API Key securely from Streamlit secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 def load_vectorstore():
@@ -18,23 +19,26 @@ def load_vectorstore():
         st.error("❌ data.txt file not found. Please upload or generate it.")
         st.stop()
 
-    # Split and chunk text
+    # ✅ Split large text into safe chunks
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    docs = text_splitter.create_documents([text])
+    chunks = text_splitter.split_text(text)
 
-    # ✅ Specify model to avoid OpenAI BadRequestError
+    # ✅ Convert each chunk into a Document object
+    documents = [Document(page_content=chunk) for chunk in chunks]
+
+    # ✅ Use token-safe model for embedding
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    
-    return FAISS.from_documents(docs, embeddings)
+
+    # ✅ Build FAISS index
+    return FAISS.from_documents(documents, embeddings)
 
 def get_qa_chain(k=15, temperature=0.3):
-    """Create a RetrievalQA chain with tuned retriever and OpenAI LLM."""
+    """Create a RetrievalQA chain with a tuned retriever and prompt."""
     vectorstore = load_vectorstore()
     retriever = vectorstore.as_retriever(search_kwargs={"k": k})
-    
-    # ✅ Using newer, preferred way
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=temperature)
 
+    # Prompt that encourages diversity in answers
     prompt = PromptTemplate.from_template(
         """You are a smart and unbiased loan advisor. Provide information using all relevant bank offers,
 not just well-known ones. Be clear, concise, and useful.
