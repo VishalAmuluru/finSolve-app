@@ -95,7 +95,7 @@ st.markdown("<div class='title'>FinSolve 💸</div>", unsafe_allow_html=True)
 st.markdown("<div class='tagline'>Hyderabad’s Premium Loan & EMI Advisor</div>", unsafe_allow_html=True)
 
 # --- Input ---
-query = st.text_input("💬 Ask your loan/EMI question", placeholder="E.g. Best EMI for 10 lakh in SBI bank?")
+user_question = st.text_input("💬 Ask your loan/EMI question", placeholder="E.g. Best EMI for 10 lakh in SBI bank?")
 
 # --- Load QA Chain ---
 @st.cache_resource(show_spinner=False)
@@ -106,12 +106,12 @@ qa_chain = load_chain()
 
 # --- Button Action ---
 if st.button("🔍 Get Answer"):
-    if not query.strip():
+    if not user_question.strip():
         st.warning("⚠️ Please enter a question.")
     else:
         with st.spinner("🧠 Thinking like a financial expert..."):
             try:
-                result = qa_chain.invoke({"question": query})  # ✅ updated key from "query" to "question"
+                result = qa_chain.invoke({"question": user_question})  # Must match input_key in rag_chain
                 answer = result.get("result", "❌ Sorry, couldn’t find an answer.")
                 st.markdown(f"<div class='answer-box'>{answer}</div>", unsafe_allow_html=True)
 

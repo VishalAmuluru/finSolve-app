@@ -1,23 +1,18 @@
 import os
-import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from vector_store import build_vectorstore  # ✅ Rebuild if needed
+from vector_store import build_vectorstore  # Optional auto rebuild
 
-# ✅ Load API key from secrets or .env
+# ✅ Load API key from .env
 load_dotenv()
-try:
-    openai_key = st.secrets["OPENAI_API_KEY"]
-except Exception:
-    openai_key = os.getenv("OPENAI_API_KEY")
-
+openai_key = os.getenv("OPENAI_API_KEY")
 if not openai_key:
-    raise ValueError("❌ OPENAI_API_KEY not found in st.secrets or .env")
+    raise ValueError("❌ OPENAI_API_KEY not found in environment variables.")
 
-# ✅ Load FAISS index (rebuild if missing)
+# ✅ Load or rebuild FAISS vectorstore
 def load_vectorstore():
     embeddings = OpenAIEmbeddings(
         model="text-embedding-3-small",
@@ -25,12 +20,12 @@ def load_vectorstore():
     )
     try:
         return FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    except Exception as e:
-        print("⚠️ FAISS index missing. Rebuilding...")
+    except Exception:
+        print("⚠️ FAISS index missing or corrupted. Rebuilding from CSV...")
         build_vectorstore()
         return FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
 
-# ✅ QA Chain with explicit input_key/output_key and prompt context
+# ✅ Build QA Chain with correct prompt and input key "question"
 def get_qa_chain(k=15, temperature=0.3):
     vectorstore = load_vectorstore()
     retriever = vectorstore.as_retriever(search_kwargs={"k": k})
@@ -59,7 +54,7 @@ Answer:"""
         return_source_documents=True,
         chain_type_kwargs={
             "prompt": prompt,
-            "input_key": "question",
-            "document_variable_name": "context"  # ✅ fixes context error
-        }
+            "document_variable_name": "context"
+        },
+        input_key="question"  # ✅ Must match Streamlit's input key
     )

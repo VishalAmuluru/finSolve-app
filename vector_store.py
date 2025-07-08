@@ -6,32 +6,15 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain.text_splitter import CharacterTextSplitter
 
-# ✅ Load .env variables (for local dev)
+# 🔐 Load OpenAI API key
 load_dotenv()
-
-# ✅ Try loading from Streamlit secrets if available
-try:
-    import streamlit as st
-    openai_key = st.secrets.get("OPENAI_API_KEY", None)
-except:
-    st = None
-    openai_key = None
-
-# ✅ Fallback to .env if not found in Streamlit
+openai_key = os.getenv("OPENAI_API_KEY")
 if not openai_key:
-    openai_key = os.getenv("OPENAI_API_KEY")
+    raise ValueError("❌ OPENAI_API_KEY not found")
 
-# ✅ Raise error if still missing
-if not openai_key:
-    raise ValueError("❌ OPENAI_API_KEY not found in .env or Streamlit secrets.")
-
-# ✅ Load and format dataset
+# 📄 Load and format loan dataset
 def load_dataset():
-    try:
-        df = pd.read_csv("data/hyderabad_loan_offers_10k.csv")
-    except FileNotFoundError:
-        raise FileNotFoundError("❌ CSV not found: data/hyderabad_loan_offers_10k.csv")
-
+    df = pd.read_csv("data/hyderabad_loan_offers_10k.csv")
     df.columns = df.columns.str.strip().str.lower()
     df.fillna("Not specified", inplace=True)
 
@@ -47,33 +30,21 @@ def load_dataset():
 
     return formatted_texts
 
-# ✅ Build FAISS index
+# 🧠 Build and save FAISS vector index
 def build_vectorstore():
-    print("🔄 Loading and chunking data...")
     raw_texts = load_dataset()
-
     splitter = CharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+
     chunks = []
     for text in raw_texts:
         chunks.extend(splitter.split_text(text))
 
     documents = [Document(page_content=chunk) for chunk in chunks]
-    print(f"✅ {len(documents)} chunks ready for embedding.")
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
+    vectorstore = FAISS.from_documents(documents, embeddings)
+    vectorstore.save_local("faiss_index")
+    print("✅ FAISS vector store saved to 'faiss_index/'")
 
-    try:
-        embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-small",
-            openai_api_key=openai_key
-        )
-    except Exception as e:
-        raise RuntimeError("❌ Failed to initialize OpenAI embeddings.") from e
-
-    try:
-        vectorstore = FAISS.from_documents(documents, embeddings)
-        vectorstore.save_local("faiss_index")
-        print("✅ FAISS index saved to 'faiss_index/'")
-    except Exception as e:
-        raise RuntimeError("❌ Failed to build or save FAISS index.") from e
-
+# 🏁 Run if main
 if __name__ == "__main__":
     build_vectorstore()
