@@ -1,47 +1,27 @@
 import os
 import streamlit as st
 from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.schema import Document  # Required to build docs manually
 
-# ✅ Set OpenAI API Key securely from Streamlit secrets
+# ✅ Load key from secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 def load_vectorstore():
-    """Build FAISS index from local data.txt file (normalized)."""
-    try:
-        with open("data.txt", "r", encoding="utf-8") as f:
-            text = f.read().lower()  # Normalize bank names
-    except FileNotFoundError:
-        st.error("❌ data.txt file not found. Please upload or generate it.")
-        st.stop()
-
-    # ✅ Split large text into safe chunks
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = text_splitter.split_text(text)
-
-    # ✅ Convert each chunk into a Document object
-    documents = [Document(page_content=chunk) for chunk in chunks]
-
-    # ✅ Use token-safe model for embedding
+    """Load prebuilt FAISS index from disk (created using vector_store.py)."""
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-
-    # ✅ Build FAISS index
-    return FAISS.from_documents(documents, embeddings)
+    return FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
 
 def get_qa_chain(k=15, temperature=0.3):
-    """Create a RetrievalQA chain with a tuned retriever and prompt."""
+    """Return RetrievalQA chain using FAISS and OpenAI."""
     vectorstore = load_vectorstore()
     retriever = vectorstore.as_retriever(search_kwargs={"k": k})
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=temperature)
 
-    # Prompt that encourages diversity in answers
     prompt = PromptTemplate.from_template(
-        """You are a smart and unbiased loan advisor. Provide information using all relevant bank offers,
-not just well-known ones. Be clear, concise, and useful.
+        """You are a smart and unbiased loan advisor. Provide details using all relevant bank offers,
+not just popular ones. Be clear, concise, and helpful.
 
 Question: {query}"""
     )
