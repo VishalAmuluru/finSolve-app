@@ -3,18 +3,26 @@ import streamlit as st
 from dotenv import load_dotenv
 from rag_chain import get_qa_chain
 
-# --- 🔐 Load API Key (local or Streamlit Cloud) ---
+# --- 🔐 Load API Key (Streamlit Cloud or Local .env) ---
 load_dotenv()
-os.environ["OPENAI_API_KEY"] = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
+try:
+    openai_key = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    openai_key = os.getenv("OPENAI_API_KEY")
 
-# --- Streamlit App Config ---
+if not openai_key:
+    raise ValueError("❌ OPENAI_API_KEY not found in st.secrets or .env")
+
+os.environ["OPENAI_API_KEY"] = openai_key
+
+# --- Streamlit Page Configuration ---
 st.set_page_config(
     page_title="FinSolve 💸 | Smart Loan Advisor",
     page_icon="💸",
     layout="centered"
 )
 
-# --- Elegant Dark Theme CSS ---
+# --- Custom Dark Theme Styling ---
 st.markdown("""
 <style>
     body, .main, .block-container {
@@ -22,7 +30,6 @@ st.markdown("""
         font-family: 'Segoe UI', sans-serif;
         color: #dcdde1;
     }
-
     .title {
         font-size: 2.8em;
         font-weight: 800;
@@ -30,14 +37,12 @@ st.markdown("""
         text-align: center;
         margin-bottom: 0;
     }
-
     .tagline {
         font-size: 1.05em;
         color: #74b9ff;
         text-align: center;
         margin-bottom: 40px;
     }
-
     .stTextInput > div > input {
         background-color: #2d3436 !important;
         color: #ffffff !important;
@@ -45,7 +50,6 @@ st.markdown("""
         border-radius: 8px;
         padding: 0.8em;
     }
-
     .stButton > button {
         background-color: #00cec9;
         color: white;
@@ -55,12 +59,10 @@ st.markdown("""
         border: none;
         transition: all 0.3s ease;
     }
-
     .stButton > button:hover {
         background-color: #01a3a4;
         transform: scale(1.02);
     }
-
     .answer-box {
         background: linear-gradient(145deg, #2d3436, #1f2a2e);
         border: 1px solid #00cec9;
@@ -72,7 +74,6 @@ st.markdown("""
         color: #dfe6e9;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
-
     .footer {
         text-align: center;
         margin-top: 60px;
@@ -81,7 +82,6 @@ st.markdown("""
         border-top: 1px solid #2d3436;
         padding-top: 15px;
     }
-
     .stExpander {
         background-color: #2f3640 !important;
         border-radius: 8px;
@@ -90,28 +90,28 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Branding Header ---
+# --- Header ---
 st.markdown("<div class='title'>FinSolve 💸</div>", unsafe_allow_html=True)
 st.markdown("<div class='tagline'>Hyderabad’s Premium Loan & EMI Advisor</div>", unsafe_allow_html=True)
 
-# --- Input Field ---
+# --- Input ---
 query = st.text_input("💬 Ask your loan/EMI question", placeholder="E.g. Best EMI for 10 lakh in SBI bank?")
 
-# --- Load Vector Index + LLM Chain ---
+# --- Load QA Chain ---
 @st.cache_resource(show_spinner=False)
 def load_chain():
     return get_qa_chain()
 
 qa_chain = load_chain()
 
-# --- Button Trigger ---
+# --- Button Action ---
 if st.button("🔍 Get Answer"):
     if not query.strip():
         st.warning("⚠️ Please enter a question.")
     else:
         with st.spinner("🧠 Thinking like a financial expert..."):
             try:
-                result = qa_chain.invoke({"query": query})
+                result = qa_chain.invoke({"question": query})  # ✅ updated key from "query" to "question"
                 answer = result.get("result", "❌ Sorry, couldn’t find an answer.")
                 st.markdown(f"<div class='answer-box'>{answer}</div>", unsafe_allow_html=True)
 

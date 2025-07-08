@@ -1,28 +1,36 @@
 import os
 import pandas as pd
-import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain.text_splitter import CharacterTextSplitter
 
-# ✅ Load API Key from secrets or .env
+# ✅ Load .env variables (for local dev)
 load_dotenv()
 
-if "OPENAI_API_KEY" in st.secrets:
-    openai_key = st.secrets["OPENAI_API_KEY"]
-elif os.getenv("OPENAI_API_KEY"):
-    openai_key = os.getenv("OPENAI_API_KEY")
-else:
-    raise ValueError("❌ OPENAI_API_KEY not found in secrets or .env")
+# ✅ Try loading from Streamlit secrets if available
+try:
+    import streamlit as st
+    openai_key = st.secrets.get("OPENAI_API_KEY", None)
+except:
+    st = None
+    openai_key = None
 
-# ✅ Load and clean CSV dataset
+# ✅ Fallback to .env if not found in Streamlit
+if not openai_key:
+    openai_key = os.getenv("OPENAI_API_KEY")
+
+# ✅ Raise error if still missing
+if not openai_key:
+    raise ValueError("❌ OPENAI_API_KEY not found in .env or Streamlit secrets.")
+
+# ✅ Load and format dataset
 def load_dataset():
     try:
         df = pd.read_csv("data/hyderabad_loan_offers_10k.csv")
     except FileNotFoundError:
-        raise FileNotFoundError("❌ CSV file not found: data/hyderabad_loan_offers_10k.csv")
+        raise FileNotFoundError("❌ CSV not found: data/hyderabad_loan_offers_10k.csv")
 
     df.columns = df.columns.str.strip().str.lower()
     df.fillna("Not specified", inplace=True)
@@ -39,7 +47,7 @@ def load_dataset():
 
     return formatted_texts
 
-# ✅ Build and save FAISS vectorstore
+# ✅ Build FAISS index
 def build_vectorstore():
     print("🔄 Loading and chunking data...")
     raw_texts = load_dataset()
@@ -50,7 +58,7 @@ def build_vectorstore():
         chunks.extend(splitter.split_text(text))
 
     documents = [Document(page_content=chunk) for chunk in chunks]
-    print(f"✅ {len(documents)} text chunks ready for embedding.")
+    print(f"✅ {len(documents)} chunks ready for embedding.")
 
     try:
         embeddings = OpenAIEmbeddings(
@@ -63,7 +71,7 @@ def build_vectorstore():
     try:
         vectorstore = FAISS.from_documents(documents, embeddings)
         vectorstore.save_local("faiss_index")
-        print("✅ FAISS index successfully saved to 'faiss_index/'")
+        print("✅ FAISS index saved to 'faiss_index/'")
     except Exception as e:
         raise RuntimeError("❌ Failed to build or save FAISS index.") from e
 
