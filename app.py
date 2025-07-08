@@ -1,6 +1,13 @@
+import os
 import streamlit as st
+from dotenv import load_dotenv
 from rag_chain import get_qa_chain
 
+# --- 🔐 Load API Key (local or Streamlit Cloud) ---
+load_dotenv()
+os.environ["OPENAI_API_KEY"] = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
+
+# --- Streamlit App Config ---
 st.set_page_config(
     page_title="FinSolve 💸 | Smart Loan Advisor",
     page_icon="💸",
@@ -80,30 +87,26 @@ st.markdown("""
         border-radius: 8px;
         color: white !important;
     }
-
 </style>
 """, unsafe_allow_html=True)
 
-# --- Branding UI ---
+# --- Branding Header ---
 st.markdown("<div class='title'>FinSolve 💸</div>", unsafe_allow_html=True)
 st.markdown("<div class='tagline'>Hyderabad’s Premium Loan & EMI Advisor</div>", unsafe_allow_html=True)
 
-# --- Text Input ---
+# --- Input Field ---
 query = st.text_input("💬 Ask your loan/EMI question", placeholder="E.g. Best EMI for 10 lakh in SBI bank?")
 
-# Alternative with chat style (optional):
-# query = st.chat_input("Ask your loan/EMI question")
-
-# --- Load Chain ---
+# --- Load Vector Index + LLM Chain ---
 @st.cache_resource(show_spinner=False)
 def load_chain():
     return get_qa_chain()
 
 qa_chain = load_chain()
 
-# --- Button and Response ---
+# --- Button Trigger ---
 if st.button("🔍 Get Answer"):
-    if query.strip() == "":
+    if not query.strip():
         st.warning("⚠️ Please enter a question.")
     else:
         with st.spinner("🧠 Thinking like a financial expert..."):
@@ -119,7 +122,7 @@ if st.button("🔍 Get Answer"):
                             st.write(doc.page_content)
 
             except Exception as e:
-                st.error("Something went wrong.")
+                st.error("❌ Something went wrong.")
                 with st.expander("🔧 Show error details"):
                     st.exception(e)
 
