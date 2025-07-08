@@ -18,16 +18,21 @@ def load_vectorstore():
         st.error("❌ data.txt file not found. Please upload or generate it.")
         st.stop()
 
+    # Split and chunk text
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     docs = text_splitter.create_documents([text])
 
-    embeddings = OpenAIEmbeddings()
+    # ✅ Specify model to avoid OpenAI BadRequestError
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    
     return FAISS.from_documents(docs, embeddings)
 
 def get_qa_chain(k=15, temperature=0.3):
     """Create a RetrievalQA chain with tuned retriever and OpenAI LLM."""
     vectorstore = load_vectorstore()
     retriever = vectorstore.as_retriever(search_kwargs={"k": k})
+    
+    # ✅ Using newer, preferred way
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=temperature)
 
     prompt = PromptTemplate.from_template(
